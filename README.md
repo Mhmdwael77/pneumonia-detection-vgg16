@@ -1,1 +1,1 @@
-# project
+# Pneumonia detection
