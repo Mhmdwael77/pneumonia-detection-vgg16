@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="{{ url_for('static', filename='TheLogo.png') }}" type="image/jpeg">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pneumonia Detection</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      line-height: 1.6;
+    }
+    header {
+      background: #0d47a1;
+      color: white;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    header img {
+      height: 40px;
+      margin-right: auto;
+    }
+    nav a {
+      color: white;
+      margin-left: 20px;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    section {
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+      animation: fadeIn 1s ease-in;
+    }
+    h1, h2 {
+      color: #0d47a1;
+    }
+    .upload-area {
+      border: 2px dashed #90caf9;
+      padding: 30px;
+      text-align: center;
+      background: white;
+      transition: 0.3s;
+    }
+    .upload-area:hover {
+      border-color: #0d47a1;
+      background-color: #e3f2fd;
+    }
+    input[type="file"] {
+      display: block;
+      margin: 20px auto;
+    }
+    button {
+      background: #0d47a1;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: #1565c0;
+    }
+    .output {
+      background: #e8f5e9;
+      padding: 20px;
+      border-left: 5px solid #43a047;
+      margin-top: 20px;
+      border-radius: 6px;
+      display: {% if prediction %}block{% else %}none{% endif %};
+    }
+    .preview img {
+      max-width: 100%;
+      border-radius: 10px;
+      margin-top: 20px;
+      transition: transform 0.4s ease;
+    }
+    .preview img:hover {
+      transform: scale(1.03);
+    }
+    footer {
+      background: #263238;
+      color: #ccc;
+      text-align: center;
+      padding: 20px;
+      margin-top: 40px;
+    }
+    footer a {
+      color: #90caf9;
+      text-decoration: none;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <header style="display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; background: linear-gradient(90deg, #0d47a1, #1565c0); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);">
+    <div style="display: flex; align-items: center;">
+      <img src="{{ url_for('static', filename='TheLogo.png') }}" alt="Logo" style="height: 50px; border-radius: 50%; margin-right: 15px;" />
+      <h1 style="color: white; font-size: 1.5rem; margin: 0;">Pneumonia Detection</h1>
+    </div>
+    <nav style="display: flex; gap: 20px;">
+      <a href="#" style="color: white; text-decoration: none; font-weight: 500; padding: 8px 16px; border-radius: 4px; transition: background 0.3s;">Home</a>
+      <a href="https://www.linkedin.com/in/mohamed-elsiley/" style="color: white; text-decoration: none; font-weight: 500; padding: 8px 16px; border-radius: 4px; transition: background 0.3s;">About</a>
+    </nav>
+  </header>
+
+  <section>
+    <h2 style="text-align: center; color: #0d47a1; margin-bottom: 20px;">Upload Your Image</h2>
+    <form method="POST" enctype="multipart/form-data">
+      <div class="upload-area" id="dropZone" style="border: 2px dashed #0d47a1; border-radius: 10px; padding: 40px; background: linear-gradient(135deg, #e3f2fd, #ffffff); box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);">
+        <p style="font-size: 1.2rem; color: #333; margin-bottom: 20px;">Drag & Drop your image here or click to upload</p>
+        <input type="file" name="file" id="fileInput" accept="image/*" style="display: none;" required />
+        <button type="button" onclick="document.getElementById('fileInput').click()" style="background: #0d47a1; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 6px; cursor: pointer; transition: background 0.3s ease;">Choose File</button>
+      </div>
+      <button type="submit" style="margin-top: 20px; display: block; margin-left: auto; margin-right: auto; background: #43a047; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 6px; cursor: pointer; transition: background 0.3s ease;">Predict</button>
+    </form>
+  </section>
+
+  <section>
+    <div class="output" id="predictionOutput">
+      <p><strong>Prediction:</strong> <span id="result">{{ prediction if prediction else '---' }}</span></p>
+      <p><strong>Confidence:</strong> <span id="confidence">
+        {% if confidence is defined and confidence != None %}
+          {{ confidence|round(2) }}%
+        {% else %}
+          --%
+        {% endif %}
+      </span></p>
+    </div>
+  </section>
+
+  <section class="preview" id="imagePreview">
+    {% if image_path %}
+      <img src="{{ url_for('static', filename=image_path) }}" alt="Uploaded Image" />
+    {% else %}
+      <p style="text-align: center;">No image uploaded</p>
+    {% endif %}
+  </section>
+
+  <section id="about">
+    <h2>About the Model</h2>
+    <p>It was trained on the <strong>Chest X-ray Dataset</strong> to detect Pneumonia and distinguish it from Normal cases.</p>
+  </section>
+
+  <br/>
+  <footer style="background: linear-gradient(90deg, #0d47a1, #1565c0); color: white; padding: 20px 0; text-align: center; box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);">
+    <div style="max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+      <p style="margin: 0; font-size: 1rem;">
+        <a href="https://github.com/Mhmdwael77" target="_blank" style="color: #90caf9; text-decoration: none; font-weight: 500; transition: color 0.3s;">View on GitHub</a>
+      </p>
+      <p style="margin: 0; font-size: 0.9rem;">Powered and designed by <strong><a href="https://github.com/Mhmdwael77" style="color: #ffcc80; text-decoration: none; transition: color 0.3s;">Mohamed Wael</a></strong></p>
+    </div>
+  </footer>
+
+  <script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const preview = document.getElementById('imagePreview');
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = '#0d47a1';
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      fileInput.files = e.dataTransfer.files;
+      showPreview(fileInput.files[0]);
+    });
+
+    fileInput.addEventListener('change', () => {
+      showPreview(fileInput.files[0]);
+    });
+
+    function showPreview(file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        preview.innerHTML = `<img src="${e.target.result}" alt="Preview Image" />`;
+      };
+      reader.readAsDataURL(file);
+    }
+  </script>
+</body>
+</html>
